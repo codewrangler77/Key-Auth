@@ -92,3 +92,58 @@ class JSON_Key_Auth {
 }
 
 add_filter( 'determine_current_user', array( 'JSON_Key_Auth', 'authHandler' ), 20 );
+
+/* ----------------------------------------------------------- *
+ * Be able to generate an API key and shared secret for a user
+ * ----------------------------------------------------------- */
+
+
+
+function jsrk_show_user_api_fields( $user ) { ?>
+
+	<h3>API Authentication</h3>
+
+	<table class="form-table">
+
+		<tr>
+			<th><label for="apikey">API Key</label></th>
+
+			<td>
+				<input type="text" name="jsrk_apikey" id="jsrka-apikey" value="<?php echo get_user_meta( $user->ID, 'json_api_key', TRUE); ?>" class="regular-text" /> <input type="button" class="button button-secondary" value="Generate" onclick="jsonRestKeyAuth.generateAPIKeyToField($('#jsrka-apikey')); return false;"><br />
+			</td>
+		</tr>
+		<tr>
+			<th><label for="apiSecret">Shared Secret</label></th>
+
+			<td>
+				<input type="text" name="jsrk_shared_secret" id="jsrka-apisecret" value="" class="regular-text" /><input type="button" class="button button-secondary" value="Generate" onclick="jsonRestKeyAuth.generateSharedSecret($('#jsrka-apisecret')); return false;"><br />
+			</td>
+		</tr>
+
+	</table>
+<?php }
+
+add_action( 'show_user_profile', 'jsrk_show_user_api_fields' );
+add_action( 'edit_user_profile', 'jsrk_show_user_api_fields' );
+
+function jsrk_save_extra_profile_fields( $user_id ) {
+
+	if ( !current_user_can( 'edit_user', $user_id ) )
+		return false;
+
+	update_user_meta( $user_id, 'json_api_key', $_POST['jsrk_apikey'] );
+	update_user_meta( $user_id, 'json_shared_secret', $_POST['jsrk_shared_secret'] );
+}
+
+add_action( 'personal_options_update', 'jsrk_save_extra_profile_fields' );
+add_action( 'edit_user_profile_update', 'jsrk_save_extra_profile_fields' );
+
+function key_auth_scripts($hook) {
+
+	if( 'profile.php' != $hook )
+		return;
+
+	wp_enqueue_script( 'json-rest-key-auth', plugin_dir_url( __FILE__ ) . '/js/json-rest-key-auth.js', array(), '1.0.0', true );
+}
+
+add_action( 'admin_enqueue_scripts', 'key_auth_scripts' );
