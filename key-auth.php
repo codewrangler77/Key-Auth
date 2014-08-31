@@ -29,23 +29,25 @@ class JSON_Key_Auth {
 			return $user;
 		}
 
-		if ( !isset( $_SERVER['HTTP_X_API_KEY'] ) || !isset( $_SERVER['HTTP_X_API_TIMESTAMP'] ) || !isset( $_SERVER['HTTP_X_API_SIGNATURE'] ) ) {
+		$httpHeaders = getallheaders();
+
+		if ( !isset( $httpHeaders['HTTP_X_API_KEY'] ) || !isset( $httpHeaders['HTTP_X_API_TIMESTAMP'] ) || !isset( $httpHeaders['HTTP_X_API_SIGNATURE'] ) ) {
 			return $user;
 		}
 
-		$user_id = self::findUserIdByKey( $_SERVER['HTTP_X_API_KEY'] );
-		$user_secret = get_user_meta( $user_id, 'json_shared_secret' );
+		$user_id = self::findUserIdByKey( $httpHeaders['HTTP_X_API_KEY'] );
+		$user_secret = get_user_meta( $user_id, 'json_shared_secret', true );
 
 		// Check for the proper HTTP Parameters
 		$signature_args = array(
-			'api_key' => $_SERVER['HTTP_X_API_KEY'],
-			'timestamp' => $_SERVER['HTTP_X_API_TIMESTAMP'],
+			'api_key' => $httpHeaders['HTTP_X_API_KEY'],
+			'timestamp' => $httpHeaders['HTTP_X_API_TIMESTAMP'],
 			'request_method' => $_SERVER['REQUEST_METHOD'],
 			'request_uri' => $_SERVER['REQUEST_URI'],
 		);
 
 		$signature_gen = self::generateSignature( $signature_args, $user_secret );
-		$signature = $_SERVER['HTTP_X_API_SIGNATURE'];
+		$signature = $httpHeaders['HTTP_X_API_SIGNATURE'];
 
 		if ( $signature_gen != $signature ) {
 			return false;
@@ -140,7 +142,7 @@ add_action( 'edit_user_profile_update', 'jsrk_save_extra_profile_fields' );
 
 function key_auth_scripts($hook) {
 
-	if( 'profile.php' != $hook )
+	if( 'user-edit.php' != $hook )
 		return;
 
 	wp_enqueue_script( 'json-rest-key-auth', plugin_dir_url( __FILE__ ) . '/js/json-rest-key-auth.js', array(), '1.0.0', true );
